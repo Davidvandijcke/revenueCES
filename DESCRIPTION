@@ -1,0 +1,15 @@
+Package: revenueCES
+Type: Package
+Title: CES Revenue Production Function Estimation
+Version: 0.0.1
+Authors@R: person("David", "Van Dijcke", , "dvdijcke@umich.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0001-5825-3447"))
+Maintainer: David Van Dijcke <dvdijcke@umich.edu>
+Description: Estimation of production functions and labor productivity when only revenue is observed
+License: GPL-3
+BugReports: https://github.com/
+URL: https://github.com/
+LazyData: TRUE
+Depends: R (>= 2.10), Rsolnp, DEoptim, dplyr, parallel, Matrix, methods, data.table
+Suggests: testthat
+Repository: CRAN
