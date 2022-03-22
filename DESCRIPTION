@@ -5,11 +5,14 @@ Version: 0.0.1
 Authors@R: person("David", "Van Dijcke", , "dvdijcke@umich.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-5825-3447"))
 Maintainer: David Van Dijcke <dvdijcke@umich.edu>
-Description: Estimation of production functions and labor productivity when only revenue is observed
+Description: Estimation of production functions and labor productivity when only revenue is observed.
 License: GPL-3
 BugReports: https://github.com/
 URL: https://github.com/
 LazyData: TRUE
-Depends: R (>= 2.10), Rsolnp, DEoptim, dplyr, parallel, Matrix, methods, data.table
+Imports: Rsolnp, DEoptim, dplyr, parallel, Matrix, methods, prodest, Rdpack
+RdMacros: Rdpack
 Suggests: testthat
+Encoding: UTF-8
 Repository: CRAN
+RoxygenNote: 7.1.2
