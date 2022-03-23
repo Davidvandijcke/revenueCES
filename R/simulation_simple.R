@@ -123,7 +123,7 @@ systemOfEqs <- function(gamma, X, X_firm) {
   r[(1):(N_f)]  <- PL - lambda*v*(Yih/omega)^((v-sigma_CES)/sigma_CES)*(1-beta_L-beta_M)*Lih^(sigma_CES-1)*omegal^(sigma_CES)*omega # FOC cost min labor
   r[(N_f+1):(2*N_f)] <- PM - lambda*v*(Yih/omega)^((v-sigma_CES)/sigma_CES)*(1-beta_L-beta_M)*Mih^(sigma_CES-1)*omega # FOC cost min materials
   r[(2*N_f+1):(3*N_f)] <-   Yh - as.matrix(unlist(lapply(unlist(lapply(seq(1,N*N_h,N), function(x) sum(Yih[x:(x+N-1)]^((epsi-1)/epsi))^(epsi/(epsi-1)) )),
-                                                         function(x) matrix(x,N,1))))
+                                  function(x) matrix(x,N,1))))
   #r[(3*N_f+1):(4*N_f)] <- Yih - f*omega
 
   #Yih -  f*omega
@@ -159,8 +159,8 @@ processSimData <- function(gamma, X, X_firm, t) {
   mu <- (epsi/(epsi-1)) / (1 - ((epsi/Sigma)-1)/(epsi-1) *  Sih) # markup
 
   df <- data.frame(period = t, Pih = Pih, Lih = Lih, Mih = Mih, PL = PL, PM = PM,
-                   PY = PY, omega = omega, omegal = omegal, K = K, Ph = Ph, Yh = Yh,
-                   Yih = Yih, Y = Y, P = P, mu = mu, Sih = Sih)
+             PY = PY, omega = omega, omegal = omegal, K = K, Ph = Ph, Yh = Yh,
+             Yih = Yih, Y = Y, P = P, mu = mu, Sih = Sih)
   return(df)
 
 }
