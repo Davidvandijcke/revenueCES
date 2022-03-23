@@ -10,7 +10,7 @@ License: GPL-3
 BugReports: https://github.com/
 URL: https://github.com/
 LazyData: TRUE
-Imports: Rsolnp, DEoptim, dplyr, parallel, Matrix, methods, prodest, Rdpack
+Imports: Rsolnp, DEoptim, dplyr, parallel, Matrix, methods, prodest, Rdpack, pracma
 RdMacros: Rdpack
 Suggests: testthat
 Encoding: UTF-8

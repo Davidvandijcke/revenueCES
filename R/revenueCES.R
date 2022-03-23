@@ -57,15 +57,15 @@
 #' \item{opt.outcome}{Optimization outcome.}
 #' Data, a list with elements,
 #' \item{Y}{A vector of firms' revenue over time.}
-#' \item{X}{A vector of state / dynamic inputs (e.g. capital).}
-#' \item{V}{A vector of variable inputs (e.g. material inputs).}
+#' \item{K}{The vector of firms' capital inputs}
+#' \item{L}{The vector of firms' capital inputs}
 #' \item{P_V}{A vector of firm- or industry-level input prices.}
 #' \item{idvar}{A vector indexing which firm each row of the vectors corresponds to.}
 #' \item{timevar}{A vector indexing which time period each row of the vectors corresponds to.}
 #'
 #' @examples
 #' Example
-revenueCES <- function(Y, X, V, P_V,idvar, timevar, v_bounds = FALSE, v = NULL, mu = NULL, boot = 100, opt = 'optim',
+revenueCES <- function(Y, K, L, M, P_L, P_M,idvar, timevar, v_bounds = FALSE, v = NULL, mu = NULL, boot = 100, opt = 'optim',
                        theta_0 = NULL, cluster = NULL, control = NULL){
 
   set.seed(seed)
