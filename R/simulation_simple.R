@@ -15,6 +15,7 @@ simulation <- function(t = 40, seed = 340) {
   D_init <<- 1.269933e+12/10^10
   K_init <<-  378235587/10^10
 
+
   # assign parameters of exogenous dynamics
   rho_L <- 0.67 # persistence of PL
   sigma_L <- 0.06 # sd of PL
@@ -40,8 +41,15 @@ simulation <- function(t = 40, seed = 340) {
   X_firm <- exp(rbind(
     simAR1(rho_o, sigma_o, rnorm(N_f, mean = log(1.5), sd = sigma_o), t, b0 = log(1.5)), # omega
     simAR1(rho_ol, sigma_ol, rnorm(N_f, mean = log(1.5), sd = sigma_ol), t, b0 = log(1.5)), # omegal
-    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log( K_init), sd = sigma_K), t, b0 =  log( K_init)) # K
+    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log( K_init), sd = sigma_K), t, b0 =  log( K_init)), # K
     #matrix(rnorm(N_f*t, mean = log(1), sd = sigma_eta), nrow = N_f, ncol = t) # eta
+    repmat(simAR1(rho_D, sigma_D, rnorm(1, mean = log(1), sd = sigma_D), t, b0 = log(1)), N_f, 1) # PY
+  )) # take exponent because AR(1) process is for logs
+  # create vector of exogenous firm variables
+  X_firm <- exp(rbind(
+    simAR1(rho_o, sigma_o, rnorm(N_f, mean = log(1), sd = sigma_o), t, b0 = log(1)), # omega
+    simAR1(rho_ol, sigma_ol, rnorm(N_f, mean = log(1), sd = sigma_ol), t, b0 = log(1)), # omegal
+    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log(1/N_f), sd = sigma_K), t, b0 =  log(1/(N_f))), # K
   ))
 
   # initialize matrix of endogenous variables
@@ -67,7 +75,6 @@ simulation <- function(t = 40, seed = 340) {
 
 
 }
-
 
 
 
@@ -116,7 +123,7 @@ systemOfEqs <- function(gamma, X, X_firm) {
   r[(1):(N_f)]  <- PL - lambda*v*(Yih/omega)^((v-sigma_CES)/sigma_CES)*(1-beta_L-beta_M)*Lih^(sigma_CES-1)*omegal^(sigma_CES)*omega # FOC cost min labor
   r[(N_f+1):(2*N_f)] <- PM - lambda*v*(Yih/omega)^((v-sigma_CES)/sigma_CES)*(1-beta_L-beta_M)*Mih^(sigma_CES-1)*omega # FOC cost min materials
   r[(2*N_f+1):(3*N_f)] <-   Yh - as.matrix(unlist(lapply(unlist(lapply(seq(1,N*N_h,N), function(x) sum(Yih[x:(x+N-1)]^((epsi-1)/epsi))^(epsi/(epsi-1)) )),
-                                                          function(x) matrix(x,N,1))))
+                                                         function(x) matrix(x,N,1))))
   #r[(3*N_f+1):(4*N_f)] <- Yih - f*omega
 
   #Yih -  f*omega
@@ -152,8 +159,8 @@ processSimData <- function(gamma, X, X_firm, t) {
   mu <- (epsi/(epsi-1)) / (1 - ((epsi/Sigma)-1)/(epsi-1) *  Sih) # markup
 
   df <- data.frame(period = t, Pih = Pih, Lih = Lih, Mih = Mih, PL = PL, PM = PM,
-             PY = PY, omega = omega, omegal = omegal, K = K, Ph = Ph, Yh = Yh,
-             Yih = Yih, Y = Y, P = P, mu = mu, Sih = Sih)
+                   PY = PY, omega = omega, omegal = omegal, K = K, Ph = Ph, Yh = Yh,
+                   Yih = Yih, Y = Y, P = P, mu = mu, Sih = Sih)
   return(df)
 
 }
