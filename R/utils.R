@@ -1,5 +1,5 @@
 
-simAR1 <- function(rho, sd, X, t, b0 = NULL) {
+simAR1 <- function(rho, sd, X, t, b0 = 0) {
   #' simulate an AR1 process forward for a vector
   #' @param rho coefficient vector
   #' @param X vector to be simulated forward t periods

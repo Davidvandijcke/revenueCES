@@ -12,8 +12,8 @@ simulation <- function(t = 40, seed = 340) {
   N <<- 180 # as in De Ridder et. al.
   N_h <<- 8 # as in De Ridder et. al.
   N_f <<- N*N_h # total number of firms
-  D_init <<- 1.269933e+12/10^10
-  K_init <<-  378235587/10^10
+  D_init <<- 1.269933e+12 / 10^10
+  K_init <<-  378235587 / 10^10
 
 
   # assign parameters of exogenous dynamics
@@ -31,6 +31,8 @@ simulation <- function(t = 40, seed = 340) {
   sigma_K <- 0.66 # sd of capital
   sigma_eta <- 0.122 # sd measurement error
 
+  K <- system.file("extdata", "orbis_sim_sample.csv", packages = "revenueCES")
+
   # create vectors of exogenous aggregate variables
   X <- exp(rbind(
     repmat(simAR1(rho_L, sigma_L, rnorm(1, mean = log(1), sd = sigma_L), t, b0 = log(1)), N_f, 1), # PL
@@ -38,18 +40,11 @@ simulation <- function(t = 40, seed = 340) {
     repmat(simAR1(rho_D, sigma_D, rnorm(1, mean = log(D_init), sd = sigma_D), t, b0 = log(D_init)), N_f, 1) # PY
   )) # take exponent because AR(1) process is for logs
   # create vector of exogenous firm variables
-  X_firm <- exp(rbind(
-    simAR1(rho_o, sigma_o, rnorm(N_f, mean = log(1.5), sd = sigma_o), t, b0 = log(1.5)), # omega
-    simAR1(rho_ol, sigma_ol, rnorm(N_f, mean = log(1.5), sd = sigma_ol), t, b0 = log(1.5)), # omegal
-    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log( K_init), sd = sigma_K), t, b0 =  log( K_init)), # K
-    #matrix(rnorm(N_f*t, mean = log(1), sd = sigma_eta), nrow = N_f, ncol = t) # eta
-    repmat(simAR1(rho_D, sigma_D, rnorm(1, mean = log(1), sd = sigma_D), t, b0 = log(1)), N_f, 1) # PY
-  )) # take exponent because AR(1) process is for logs
   # create vector of exogenous firm variables
   X_firm <- exp(rbind(
     simAR1(rho_o, sigma_o, rnorm(N_f, mean = log(1), sd = sigma_o), t, b0 = log(1)), # omega
     simAR1(rho_ol, sigma_ol, rnorm(N_f, mean = log(1), sd = sigma_ol), t, b0 = log(1)), # omegal
-    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log(1/N_f), sd = sigma_K), t, b0 =  log(1/(N_f))), # K
+    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log(K_init), sd = sigma_K), t, b0 = log(K_init)) # K
   ))
 
   # initialize matrix of endogenous variables
@@ -127,7 +122,7 @@ systemOfEqs <- function(gamma, X, X_firm) {
   #r[(3*N_f+1):(4*N_f)] <- Yih - f*omega
 
   #Yih -  f*omega
-  print(summary(r))
+  #print(summary(r))
   #return(error^2)
   return(as.vector(r))
 }
