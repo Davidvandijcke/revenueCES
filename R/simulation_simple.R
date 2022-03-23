@@ -4,17 +4,15 @@ simulation <- function(t = 40, seed = 32424) {
 
   set.seed(seed)
 
-  # assign calibrated parameters to global scope
-  beta_L <<- 0.4
-  beta_M <<- 0.4
-  v <<- 0.8 # constant returns to scale
+  beta_L <<- 0.3
+  beta_M <<- 0.3
+  v <<- 1 # constant returns to scale
   sigma_CES <<- 0.5 # Raval (2019)
   Sigma <<- 1.1 # as in De Ridder et. al.
   epsi <<- 10 # as in De Ridder et. al.
   N <<- 180 # as in De Ridder et. al.
   N_h <<- 8 # as in De Ridder et. al.
   N_f <<- N*N_h # total number of firms
-
   # assign parameters of exogenous dynamics
   rho_L <- 0.67 # persistence of PL
   sigma_L <- 0.06 # sd of PL
@@ -32,16 +30,15 @@ simulation <- function(t = 40, seed = 32424) {
 
   # create vectors of exogenous aggregate variables
   X <- exp(rbind(
-    repmat(simAR1(rho_L, sigma_L, rnorm(1, mean = log(100), sd = sigma_L), t, b0 = log(100)), N_f, 1), # PL
-    repmat(simAR1(rho_M, sigma_M, rnorm(1, mean = log(100), sd = sigma_M), t, b0 = log(100)), N_f, 1), # PM
-    repmat(simAR1(rho_D, sigma_D, rnorm(1, mean = log(7), sd = sigma_D), t, b0 = log(7)), N_f, 1) # PY
+    repmat(simAR1(rho_L, sigma_L, rnorm(1, mean = log(1), sd = sigma_L), t, b0 = log(1)), N_f, 1), # PL
+    repmat(simAR1(rho_M, sigma_M, rnorm(1, mean = log(1), sd = sigma_M), t, b0 = log(1)), N_f, 1), # PM
+    repmat(simAR1(rho_D, sigma_D, rnorm(1, mean = log(1), sd = sigma_D), t, b0 = log(1)), N_f, 1) # PY
   )) # take exponent because AR(1) process is for logs
-
   # create vector of exogenous firm variables
   X_firm <- exp(rbind(
-    simAR1(rho_o, sigma_o, rnorm(N_f, mean = log(1.2), sd = sigma_o), t, b0 = log(1.2)), # omega
-    simAR1(rho_ol, sigma_ol, rnorm(N_f, mean = log(1.2), sd = sigma_ol), t, b0 = log(1.2)), # omegal
-    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log(3), sd = sigma_K), t, b0 =  log(3)), # K
+    simAR1(rho_o, sigma_o, rnorm(N_f, mean = log(1), sd = sigma_o), t, b0 = log(1)), # omega
+    simAR1(rho_ol, sigma_ol, rnorm(N_f, mean = log(1), sd = sigma_ol), t, b0 = log(1)), # omegal
+    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log(1/N_f), sd = sigma_K), t, b0 =  log(1/(N_f))), # K
     matrix(rnorm(N_f*t, mean = log(1), sd = sigma_eta), nrow = N_f, ncol = t) # eta
   ))
 
@@ -60,25 +57,10 @@ simulateOnePeriod <- function(N, N_h, X, X_firm) {
   #'
 
   # initialize matrix of endogenous variables
-  theta0 <- matrix(NA, 12*N_f) # preassign
+  theta0 <- matrix(NA, 3*N_f) # preassign
+  theta0[1:(N_f)] <- rnorm(N_f, mean = log(1), sd = 0.06) # firm-level log prices
+  theta0[(N_f+1):(3*N_f)] <- rnorm(2*N_f, mean = log(1/(N_f)), sd = 0.1) # firm level inputs
 
-  theta0[((N_f+1)):(2*N_f)] <- rnorm(N_f, mean = log(100), sd = 0.06) # firm-level log prices
-  theta0[((4*N_f+1)):(6*N_f)] <-  rnorm(N_f, mean = log(100), sd = 0.1) # firm-level log inputs
-  theta0[((9*N_f+1)):(10*N_f)] <- as.matrix(replicate(N_f/N, matrix(rnorm(n = 1, mean = log(100), sd = 0.06),N))) # market-level log prices
-  theta0[(11*N_f+1):(12*N_f)] <- replicate(1, matrix(rnorm(n = 1, mean = log(100), sd = 0.05), N_f)) # aggregate log prices
-  theta0[(10*N_f+1):(11*N_f)] <- log(X_firm[(2*N_f+1):(3*N_f),1]) - Sigma*(theta0[(11*N_f+1):(12*N_f)]) # aggregate output = aggregate revenue / prices^Sigma
-  theta0[((8*N_f+1)):(9*N_f)] <- -Sigma * ( theta0[((9*N_f+1)):(10*N_f)] - theta0[(11*N_f+1):(12*N_f)] ) +  theta0[(10*N_f+1):(11*N_f)]  # market-level output
-  theta0[((6*N_f+1)):(7*N_f)] <- -epsi*(theta0[((N_f+1)):(2*N_f)] - theta0[(11*N_f+1):(12*N_f)]) + theta0[((8*N_f+1)):(9*N_f)] # firm-level output
-  theta0[((7*N_f+1)):(8*N_f)] <- theta0[((6*N_f+1)):(7*N_f)] + log(X_firm[(3*N_f+1):(4*N_f), 1])  # firm-level output with measurement error
-  theta0[((3*N_f+1)):(4*N_f)] <- rnorm(N_f, mean = log(0.005), sd = 0.1) # firm market share
-  theta0[1:(N_f)] <-  log((epsi/(epsi-1))) - log((1 - ((epsi/Sigma)-1)/(epsi-1) *  exp(theta0[((3*N_f+1)):(4*N_f)]) ) ) # firm-level markups
-  theta0[((2*N_f+1)):(3*N_f)] <- theta0[1:(N_f)] - theta0[((N_f+1)):(2*N_f)]   # firm-level log marginal costs = log markup - log price
-
-
-
-  theta <- repmat(log(1), N_f)
-
-  #rnorm(N_f, mean = log(0.005), sd = 0.1) # firm market share = firm revenue / market revenue
 
 
   solved <- nleqslv(theta0, systemOfEqs, jac = NULL, X = X[,1], X_firm[,1], method = "Broyden")
@@ -86,10 +68,12 @@ simulateOnePeriod <- function(N, N_h, X, X_firm) {
   solved <- optim(as.vector(theta0), systemOfEqs, X = X[,1], X_firm = X_firm[,1])
   solved <- BB::BBsolve(as.vector(theta0), systemOfEqs, X = X[,1], X_firm = X_firm[,1])
 
-  solved <- pracma::fsolve(x = as.vector(theta0), f = systemOfEqs, X = X[,1], X_firm = X_firm[,1])
-
+  solved <- BB::BBsolve(as.vector(theta0), systemOfEqs, X = X[,2], X_firm = X_firm[,2],
+                        control = list(maxit = 10000, noimp = 200, tol = 1.e-04))
 
 }
+
+
 systemOfEqs <- function(gamma, X, X_firm) {
   #' Set up system of equations
   #'
