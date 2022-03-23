@@ -71,9 +71,9 @@ revenueCES <- function(Y, K, L, M, P_L, P_M,idvar, timevar, v_bounds = FALSE, v 
   set.seed(seed)
   Start = Sys.time() # start tracking time
   Y <- prodest::checkM(Y) # change all input to matrix
-  X <- prodest::checkM(X)
-  V <- prodest::checkM(sX)
-  pX <- checkM(pX)
+  K <- prodest::checkM(K)
+  L <- prodest::checkM(L)
+  M <- prodest::checkM(M)
   idvar <- checkM(idvar)
   timevar <- checkM(timevar)
   snum <- ncol(sX) # find the number of input variables
@@ -104,18 +104,10 @@ revenueCES <- function(Y, K, L, M, P_L, P_M,idvar, timevar, v_bounds = FALSE, v 
       lag.zX[, i] = lagPanel(zX[, i], idvar = idvar, timevar = timevar)
     }
   }
-  if (!is.null(zX) & control == "fs") { # generate the matrix of data for case where controls only appear in first stage, as in De Loecker and Warzynski (2012)
     data <- as.matrix(data.frame(Y = Y, idvar = idvar, timevar = timevar, Z = data.frame(lag.fX,sX),
                                  Xt = data.frame(fX,sX), lX = data.frame(lag.fX,lag.sX),
                                  zX = data.frame(zX), regvars = regvars))
-  } else if (!is.null(zX) & control == "2s") {
-    data <- as.matrix(data.frame(Y = Y, idvar = idvar, timevar = timevar, Z = data.frame(lag.fX,sX,lag.zX),
-                                 Xt = data.frame(fX,sX,zX), lX = data.frame(lag.fX,lag.sX,lag.zX),
-                                 zX = data.frame(zX), regvars = regvars))
-  } else {
-    data <- as.matrix(data.frame(Y = Y, idvar = idvar, timevar = timevar, Z = data.frame(lag.fX,sX),
-                                 Xt = data.frame(fX,sX), lX = data.frame(lag.fX,lag.sX), regvars = regvars))
-  }
+
 
 
 }

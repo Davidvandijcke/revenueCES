@@ -1,6 +1,5 @@
-#as.matrix(unlist(lapply(test, function(x) matrix(x, 5,1))))
 
-simulation <- function(t = 40, seed = 32424) {
+simulation <- function(t = 40, seed = 340) {
 
   set.seed(seed)
 
@@ -9,10 +8,13 @@ simulation <- function(t = 40, seed = 32424) {
   v <<- 1 # constant returns to scale
   sigma_CES <<- 0.5 # Raval (2019)
   Sigma <<- 1.1 # as in De Ridder et. al.
-  epsi <<- 10 # as in De Ridder et. al.
+  epsi <<- 5 # as in De Ridder et. al.
   N <<- 180 # as in De Ridder et. al.
   N_h <<- 8 # as in De Ridder et. al.
   N_f <<- N*N_h # total number of firms
+  D_init <<- 1.269933e+12/10^10
+  K_init <<-  378235587/10^10
+
   # assign parameters of exogenous dynamics
   rho_L <- 0.67 # persistence of PL
   sigma_L <- 0.06 # sd of PL
@@ -32,30 +34,38 @@ simulation <- function(t = 40, seed = 32424) {
   X <- exp(rbind(
     repmat(simAR1(rho_L, sigma_L, rnorm(1, mean = log(1), sd = sigma_L), t, b0 = log(1)), N_f, 1), # PL
     repmat(simAR1(rho_M, sigma_M, rnorm(1, mean = log(1), sd = sigma_M), t, b0 = log(1)), N_f, 1), # PM
-    repmat(simAR1(rho_D, sigma_D, rnorm(1, mean = log(1), sd = sigma_D), t, b0 = log(1)), N_f, 1) # PY
+    repmat(simAR1(rho_D, sigma_D, rnorm(1, mean = log(D_init), sd = sigma_D), t, b0 = log(D_init)), N_f, 1) # PY
   )) # take exponent because AR(1) process is for logs
   # create vector of exogenous firm variables
   X_firm <- exp(rbind(
-    simAR1(rho_o, sigma_o, rnorm(N_f, mean = log(1), sd = sigma_o), t, b0 = log(1)), # omega
-    simAR1(rho_ol, sigma_ol, rnorm(N_f, mean = log(1), sd = sigma_ol), t, b0 = log(1)), # omegal
-    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log(1/N_f), sd = sigma_K), t, b0 =  log(1/(N_f))), # K
-    matrix(rnorm(N_f*t, mean = log(1), sd = sigma_eta), nrow = N_f, ncol = t) # eta
+    simAR1(rho_o, sigma_o, rnorm(N_f, mean = log(1.5), sd = sigma_o), t, b0 = log(1.5)), # omega
+    simAR1(rho_ol, sigma_ol, rnorm(N_f, mean = log(1.5), sd = sigma_ol), t, b0 = log(1.5)), # omegal
+    simAR1(rho_K, sigma_K, rnorm(N_f, mean = log( K_init), sd = sigma_K), t, b0 =  log( K_init)) # K
+    #matrix(rnorm(N_f*t, mean = log(1), sd = sigma_eta), nrow = N_f, ncol = t) # eta
   ))
 
   # initialize matrix of endogenous variables
   theta0 <- matrix(NA, 3*N_f) # preassign
-  theta0[1:(N_f)] <- rnorm(N_f, mean = log(1), sd = 0.06) # firm-level log prices
-  theta0[(N_f+1):(3*N_f)] <- rnorm(2*N_f, mean = log(1/(N_f)), sd = 0.1) # firm level inputs
+  theta0[1:(N_f)] <- rnorm(N_f, mean = log(100), sd = 0.06) # firm-level log prices
+  theta0[(N_f+1):(3*N_f)] <- rnorm(2*N_f, mean = log(K_init), sd = 0.1) # firm level inputs
 
-  mat_solved <- matrix(NA, 3*N_f, t) # pre-assign matrix of converged endogenous variables
   for (step in 1:t) { # for each time period
     print(paste0("PERIOD", step))
     solved <- BB::BBsolve(as.vector(theta0), systemOfEqs, X = X[,step], X_firm = X_firm[,step],
-                          control = list(maxit = 10000, noimp = 200, tol = 1.e-07)) # solve system of non-linear equations
-    mat_solved[,step] <- solved$par # assign to matrix
+                          control = list(maxit = 100000, noimp = 1000, tol = 1.e-7)) # solve system of non-linear equations
+    #solved <- pracma::fsolve(x = as.vector(theta0), f = systemOfEqs, X = X[,step], X_firm = X_firm[,step])
+
+    print(solved$message)
+    df_temp <-  processSimData(solved$par, X = X[,step], X_firm = X_firm[,step],
+                               t = step)
+    if (step == 1) { df <- df_temp
+    } else { df <- rbind(df, df_temp) }
+
     theta0 <- solved$par # use converged vector from last period as new initial vector
   }
-  return(mat_solved)
+  return(df)
+
+
 }
 
 
@@ -87,7 +97,7 @@ systemOfEqs <- function(gamma, X, X_firm) {
   omega <- X_firm[1:(N_f)]
   omegal <- X_firm[(N_f+1):(2*N_f)]
   K <- X_firm[(2*N_f+1):(3*N_f)]
-  eta <- X_firm[(3*N_f+1):(4*N_f)]
+
   # intermediate equations
   Ph <- as.matrix(unlist(lapply(unlist(lapply(seq(1,N*N_h,N), function(x) sum(Pih[x:(x+N-1)]^(1-epsi))^(1/(1-epsi)) )),
                                 function(x) matrix(x,N,1)))) # CES sum over firm prices (need to sum over each N firms in each market first and then expand these again)
@@ -103,11 +113,47 @@ systemOfEqs <- function(gamma, X, X_firm) {
   B <- PL^(sigma_CES/(sigma_CES-1)) * beta_L^(-1/(sigma_CES-1)) + PM^(sigma_CES/(sigma_CES-1)) * beta_M^(-1/(sigma_CES-1))
   # set up equations
   r <- matrix(NA, length(theta))
-  r[(1):(N_f)]  <- PL - lambda*v*(f)^((v-sigma_CES)/sigma_CES)*(1-beta_L-beta_M)*Lih^(sigma_CES-1)*omegal^(sigma_CES)*omega # FOC cost min labor
-  r[(N_f+1):(2*N_f)] <- PM - lambda*v*(f)^((v-sigma_CES)/sigma_CES)*(1-beta_L-beta_M)*Mih^(sigma_CES-1)*omega # FOC cost min materials
-  r[(2*N_f+1):(3*N_f)] <- PY - P^(Sigma)*Y
+  r[(1):(N_f)]  <- PL - lambda*v*(Yih/omega)^((v-sigma_CES)/sigma_CES)*(1-beta_L-beta_M)*Lih^(sigma_CES-1)*omegal^(sigma_CES)*omega # FOC cost min labor
+  r[(N_f+1):(2*N_f)] <- PM - lambda*v*(Yih/omega)^((v-sigma_CES)/sigma_CES)*(1-beta_L-beta_M)*Mih^(sigma_CES-1)*omega # FOC cost min materials
+  r[(2*N_f+1):(3*N_f)] <-   Yh - as.matrix(unlist(lapply(unlist(lapply(seq(1,N*N_h,N), function(x) sum(Yih[x:(x+N-1)]^((epsi-1)/epsi))^(epsi/(epsi-1)) )),
+                                                          function(x) matrix(x,N,1))))
+  #r[(3*N_f+1):(4*N_f)] <- Yih - f*omega
+
   #Yih -  f*omega
   print(summary(r))
   #return(error^2)
   return(as.vector(r))
+}
+
+
+processSimData <- function(gamma, X, X_firm, t) {
+
+  theta <- exp(gamma) # impose non-negativity/
+  Pih <- theta[(1:(N_f))] # Ph
+  Lih <- theta[((N_f+1)):(2*N_f)]
+  Mih <- theta[((2*N_f+1)):(3*N_f)]
+  # assign exogenous variables
+  PL <- X[1:(N_f)]
+  PM <- X[(N_f+1):(2*N_f)]
+  PY <- X[(2*N_f+1):(3*N_f)]
+  omega <- X_firm[1:(N_f)]
+  omegal <- X_firm[(N_f+1):(2*N_f)]
+  K <- X_firm[(2*N_f+1):(3*N_f)]
+
+  # intermediate equations
+  Ph <- as.matrix(unlist(lapply(unlist(lapply(seq(1,N*N_h,N), function(x) sum(Pih[x:(x+N-1)]^(1-epsi))^(1/(1-epsi)) )),
+                                function(x) matrix(x,N,1)))) # CES sum over firm prices (need to sum over each N firms in each market first and then expand these again)
+  Yh <- (Ph)^(-Sigma) * PY
+  Yih <- (Pih / Ph)^(-epsi) * Yh # market output inverse CES share of aggregate
+  Y <- sum(Yh[seq(1,N*N_h,N)]^((Sigma-1)/Sigma))^(Sigma/(Sigma-1))
+  P <- (Yh/Y)^(1/Sigma)*Ph
+  #P <- (PY / Y)^(1/Sigma)
+  Sih <- (Pih*Yih)/(Ph*Yh) # definition market share
+  mu <- (epsi/(epsi-1)) / (1 - ((epsi/Sigma)-1)/(epsi-1) *  Sih) # markup
+
+  df <- data.frame(period = t, Pih = Pih, Lih = Lih, Mih = Mih, PL = PL, PM = PM,
+             PY = PY, omega = omega, omegal = omegal, K = K, Ph = Ph, Yh = Yh,
+             Yih = Yih, Y = Y, P = P, mu = mu, Sih = Sih)
+  return(df)
+
 }
