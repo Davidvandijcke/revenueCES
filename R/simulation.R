@@ -99,7 +99,7 @@ systemOfEqs <- function(gamma, X, X_firm) {
   #' let beta = (beta_L, beta_M, v, sigma_CES, sigma, epsilon, N, N_h)
   #' let X = (PL, PM, PY)
   #' let X_firm = (omega, omegal, K, eta)
-  #' organize variable matrics as N_f*H (for each t) (so one market, all firms in the market, next market...) (so market-level variables have all subsequent N_h entries equal)
+  #' organize variable matrices as N_f*H (for each t) (so one market, all firms in the market, next market...) (so market-level variables have all subsequent N_h entries equal)
 
   # assign guesses of endogenous variables (take powers of two to force non-negativity constraints)
   theta <- exp(gamma) # impose non-negativity/

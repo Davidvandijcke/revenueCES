@@ -19,4 +19,17 @@ simAR1 <- function(rho, sd, X, t, b0 = 0) {
 }
 
 
+checkMat <- function(input){ # , inputname = NA
+  if (is.numeric(input)) {
+    stop(paste0("'", deparse(substitute(vec)), "' not numeric data. Please pass as numeric vector or matrix."))
+    }
+  if (!is.matrix(input)) {
+    out <- as.matrix(input)
+  } else{
+    out <- input
+  }
+  colnames(out) <- NULL
+  return(out)
+}
+
 
